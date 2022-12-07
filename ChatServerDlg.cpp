@@ -70,8 +70,8 @@ BEGIN_MESSAGE_MAP(CChatServerDlg, CDialogEx)
 	ON_WM_SYSCOMMAND()
 	ON_WM_PAINT()
 	ON_WM_QUERYDRAGICON()
-	ON_MESSAGE(UM_ACCEPT, (LRESULT(AFX_MSG_CALL CWnd::*)(WPARAM, LPARAM))OnAccept)
-	ON_MESSAGE(UM_RECEIVE, (LRESULT(AFX_MSG_CALL CWnd::*)(WPARAM, LPARAM)) OnReceive)
+	ON_MESSAGE(UM_ACCEPT, OnAccept)
+	ON_MESSAGE(UM_RECEIVE, OnReceive)
 
 	ON_BN_CLICKED(IDC_BUTTON_SEND, &CChatServerDlg::OnClickedButtonSend)
 END_MESSAGE_MAP()
@@ -110,7 +110,7 @@ BOOL CChatServerDlg::OnInitDialog()
 
 	// TODO: 여기에 추가 초기화 작업을 추가합니다.
 	for (int i = 0; i < MAX_CLIENT_COUNT; i++) {
-		m_socServer.m_index.push_back(i);
+		m_socServer.m_index.push_back(i+1);
 	}
 
 	// 서버 소켓을 생성(포트번호 5000)
@@ -172,7 +172,7 @@ HCURSOR CChatServerDlg::OnQueryDragIcon()
 	return static_cast<HCURSOR>(m_hIcon);
 }
 
-LPARAM CChatServerDlg::OnAccept(WPARAM wPara, LPARAM lPara) {
+LRESULT CChatServerDlg::OnAccept(WPARAM wPara, LPARAM lPara) {
 	// 클라이언트에서 접속 요청이 왔을 때
 
 	try {
@@ -194,6 +194,7 @@ LPARAM CChatServerDlg::OnAccept(WPARAM wPara, LPARAM lPara) {
 
 		// 클라이언트(사용자)에게 연결 성공 메시지를 보낼때 클라이언트 번호도 같이 보냄.
 		m_socCom[tmp]->Send((_T(SOC_CLIENT_CONNECT) + number), 256);
+		
 	}
 	catch (CException* ex) {
 		ex->ReportError();
@@ -205,11 +206,13 @@ LPARAM CChatServerDlg::OnAccept(WPARAM wPara, LPARAM lPara) {
 
 // 데이터를 보내는 것은 소켓 클래스의 멤버 함수인 Send를 이용
 // 데이터를 받을 때는 통신 소켓 클래스에 오버라이딩한 OnReceive 메시지 함수를 사용
-LPARAM CChatServerDlg::OnReceive(WPARAM wPara, LPARAM lPara) {
+LRESULT CChatServerDlg::OnReceive(WPARAM wPara, LPARAM lPara) {
 	// 접속된 곳에서 데이터가 도착했을 때
+	UpdateData(TRUE);
 	char pTmp[256];
 	CString strTmp;
 	memset(pTmp, '\0', 256);
+
 
 	// 데이터를 pTmp에 받는다.
 	m_socCom[wPara]->Receive(pTmp, 256);    // wParam = 클라이언트 번호
@@ -236,6 +239,7 @@ LPARAM CChatServerDlg::OnReceive(WPARAM wPara, LPARAM lPara) {
 			}
 		}
 	}
+	UpdateData(FALSE);
 	return TRUE;
 }
 

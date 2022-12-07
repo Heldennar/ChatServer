@@ -31,8 +31,8 @@ protected:
 	afx_msg void OnSysCommand(UINT nID, LPARAM lParam);
 	afx_msg void OnPaint();
 	afx_msg HCURSOR OnQueryDragIcon();
-	afx_msg LPARAM OnAccept(WPARAM wPara, LPARAM lPara);    // 클라이언트 접속 요청이 왔을 때 실행되는 메세지 함수
-	afx_msg LPARAM OnReceive(WPARAM wPara, LPARAM lPara);
+	afx_msg LRESULT OnAccept(WPARAM wPara, LPARAM lPara);    // 클라이언트 접속 요청이 왔을 때 실행되는 메세지 함수
+	afx_msg LRESULT OnReceive(WPARAM wPara, LPARAM lPara);
 	DECLARE_MESSAGE_MAP()
 public:
 	CString m_strSend;
