@@ -31,13 +31,20 @@ protected:
 	afx_msg void OnSysCommand(UINT nID, LPARAM lParam);
 	afx_msg void OnPaint();
 	afx_msg HCURSOR OnQueryDragIcon();
-	afx_msg LRESULT OnAccept(WPARAM wPara, LPARAM lPara);    // 클라이언트 접속 요청이 왔을 때 실행되는 메세지 함수
-	afx_msg LRESULT OnReceive(WPARAM wPara, LPARAM lPara);
+	afx_msg LRESULT OnAccept(WPARAM wParam, LPARAM lParam);    // 클라이언트 접속 요청이 왔을 때 실행되는 메세지 함수
+	afx_msg LRESULT OnReceive(WPARAM wParam, LPARAM lParam);
 	DECLARE_MESSAGE_MAP()
 public:
+	void showChat(CString str, WPARAM wParam, LPARAM lParam, unsigned char check, unsigned short int body_size, char* body);
+	CString CH2CS(char* strInput);
+	char* CS2CHAR(CString strInput);
 	CString m_strSend;
 	CListBox m_list;
 	CString m_strStatus;
 	afx_msg void OnClickedButtonSend();
 	std::list<int> m_using;
+
+protected:
+	int isready;
+	
 };

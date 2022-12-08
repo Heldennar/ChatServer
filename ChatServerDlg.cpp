@@ -7,6 +7,7 @@
 #include "ChatServer.h"
 #include "ChatServerDlg.h"
 #include "afxdialogex.h"
+#include <random>
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -113,6 +114,7 @@ BOOL CChatServerDlg::OnInitDialog()
 		m_socServer.m_index.push_back(i+1);
 	}
 
+	isready = 0;
 	// 서버 소켓을 생성(포트번호 5000)
 	m_socServer.Create(5000);
 	// 클라이언트의 접속을 기다림
@@ -172,7 +174,7 @@ HCURSOR CChatServerDlg::OnQueryDragIcon()
 	return static_cast<HCURSOR>(m_hIcon);
 }
 
-LRESULT CChatServerDlg::OnAccept(WPARAM wPara, LPARAM lPara) {
+LRESULT CChatServerDlg::OnAccept(WPARAM wParam, LPARAM lParam) {
 	// 클라이언트에서 접속 요청이 왔을 때
 
 	try {
@@ -206,42 +208,196 @@ LRESULT CChatServerDlg::OnAccept(WPARAM wPara, LPARAM lPara) {
 
 // 데이터를 보내는 것은 소켓 클래스의 멤버 함수인 Send를 이용
 // 데이터를 받을 때는 통신 소켓 클래스에 오버라이딩한 OnReceive 메시지 함수를 사용
-LRESULT CChatServerDlg::OnReceive(WPARAM wPara, LPARAM lPara) {
+LRESULT CChatServerDlg::OnReceive(WPARAM wParam, LPARAM lParam) {
 	// 접속된 곳에서 데이터가 도착했을 때
 	UpdateData(TRUE);
-	char pTmp[256];
+	
 	CString strTmp;
-	memset(pTmp, '\0', 256);
+	
+	unsigned char check, msg_id;//message_id
+	unsigned short int body_size;
 
+	m_socCom[wParam]->Receive((char*)&check,1,0);    // wParam = 클라이언트 번호/헤더 1바이트 읽기
+	m_socCom[wParam]->Receive((int*)&body_size, 1, 0);
+	char* pTmp = new char[body_size];
+	memset(pTmp, '\0', body_size);
+	m_socCom[wParam]->Receive(pTmp, body_size, 0);
+	strTmp = CH2CS(pTmp);
 
-	// 데이터를 pTmp에 받는다.
-	m_socCom[wPara]->Receive(pTmp, 256);    // wParam = 클라이언트 번호
-	strTmp.Format(_T("%s"), pTmp);
-
-	if (strTmp.Compare((LPCTSTR)SOC_CLIENT_DISCONNECT) == 0) {
-		m_socServer.m_socCom[wPara].Close();
-		m_socCom[wPara]->Close();
-		m_socServer.m_index.push_back(wPara);
-		m_using.erase(std::remove(m_using.begin(), m_using.end(), wPara), m_using.end());
+	showChat(strTmp, wParam, lParam, check, body_size, pTmp);
+	switch (check) 
+	{
+	case(20): { //채팅
+		showChat(strTmp, wParam, lParam, check, body_size, pTmp);
+		break;
 	}
-	else {
-		// 리스트박스에 보여준다.
-		CString id;
-		id.Format(_T("%d"), wPara);
+	case(91)://준비 87시작 88 89 턴
+	{ 
+		isready += 1;
+		if (isready == 2) {
+			
+			
+			unsigned char stch = 87; //게임시작(87,88,89)
+			CString ststr = _T("게임을 시작합니다. ");
+			int st_size = (sizeof(char) * ststr.GetLength() * 2) + 1;
+			char* ctemp = CS2CHAR(ststr);
+			showChat(ststr, wParam, lParam, stch, st_size, ctemp);
+			delete ctemp;
 
-		int i = m_list.GetCount();
-		m_list.InsertString(i, (_T("사용자") + id + " : " + strTmp));
+			std::random_device rd;
+			std::mt19937 gen(rd());
+			std::uniform_int_distribution<int> dis(1, 2);
+			int j = dis(gen);
+			
+			if (j == 1) {
+				ststr = _T("1번 플레이어가 먼저 시작합니다.");
+				st_size = (sizeof(char) * ststr.GetLength() * 2) + 1;
+				ctemp = CS2CHAR(ststr);
+				
+				char* stbuff = new char[st_size + 2];
+				*stbuff = 88;
+				*(stbuff + 1) = body_size;
+				memcpy(stbuff + 2, ctemp, st_size + 2);
+				m_socCom[1]->Send(stbuff, st_size + 2);
+				delete stbuff;
 
-		// 이 부분 제외하면 서버만 다중 클라이언트로 부터 채팅 가능.
-		for each (int i in m_using) {
-			if (i != _ttoi(id)) {    // 보낸 클라이언트 제외 모든 클라이언트한테 보냄
-				m_socCom[i]->Send((_T("사용자") + id + " : " + strTmp), 256);
+				*stbuff = 89;
+				*(stbuff + 1) = body_size;
+				memcpy(stbuff + 2, ctemp, st_size + 2);
+				m_socCom[2]->Send(stbuff, st_size + 2);
+				delete stbuff;
+				stbuff = NULL;
 			}
+			else if (j == 2) {
+				ststr = _T("2번 플레이어가 먼저 시작합니다.");
+				st_size = (sizeof(char) * ststr.GetLength() * 2) + 1;
+				ctemp = CS2CHAR(ststr);
+				
+				char* stbuff = new char[st_size + 2];
+				*stbuff = 88;
+				*(stbuff + 1) = body_size;
+				memcpy(stbuff + 2, ctemp, st_size + 2);
+				m_socCom[2]->Send(stbuff, st_size + 2);
+				delete stbuff;
+
+				*stbuff = 89;
+				*(stbuff + 1) = body_size;
+				memcpy(stbuff + 2, ctemp, st_size + 2);
+				m_socCom[1]->Send(stbuff, st_size + 2);
+				delete stbuff;
+				stbuff = NULL;
+			}
+
+			
+			
+			
 		}
+		break;
 	}
+	case(90): //준비해제
+	{
+		isready -= 1;
+		break;
+	}
+	
+	case(100): //턴 전환
+	{
+		unsigned char stch = 100; //게임시작(87,88,89)
+		CString ststr = (_T("당신의 턴입니다."));
+		int st_size = (sizeof(char) * ststr.GetLength() * 2) + 1;
+		char* ctemp = CS2CHAR(ststr);
+
+		showChat(ststr, wParam, lParam, stch, st_size, ctemp);
+		delete ctemp;
+		break;
+	}
+
+	case(11): //말 움직이기
+	{
+
+	}
+	case(99): //승리
+	{
+		unsigned char stch = 99; //게임시작(87,88,89)
+		CString ststr = (wParam + _T("번 플레이어가 승리하였습니다. 당신의 패배입니다."));
+		int st_size = (sizeof(char) * ststr.GetLength() * 2) + 1;
+		char* ctemp = CS2CHAR(ststr);
+		
+		showChat(ststr, wParam, lParam, stch, st_size, ctemp);
+		delete ctemp;
+		break;
+	}
+
+	}
+
+
 	UpdateData(FALSE);
 	return TRUE;
 }
+
+
+
+void CChatServerDlg::showChat(CString str, WPARAM wParam, LPARAM lParam, 
+	unsigned char check, unsigned short int body_size, char * body)
+{
+	CString id;
+	id.Format(_T("%d"), wParam);
+
+	m_list.AddString((_T("사용자") + id + " : " + str));
+
+	
+	for each (int i in m_using) {
+		if (i != _ttoi(id)) {    // 보낸 클라이언트 제외 모든 클라이언트한테 보냄
+			int b_len = body_size + 2;
+			char* buff = new char[b_len];
+			*buff = check;
+			*(buff + 1) = body_size;
+			memcpy(buff + 2, body, b_len);
+			m_socCom[i]->Send(buff, b_len);
+		}
+	}
+}
+
+CString CChatServerDlg::CH2CS(char* strInput)
+
+{
+
+	// ## char* -> wchar_t -> CString ##
+
+	wchar_t* strWCHAR;
+	CString strOutput;
+	int iLength;
+
+	iLength = MultiByteToWideChar(CP_ACP, 0, strInput, strlen(strInput), NULL, NULL);
+	strWCHAR = SysAllocStringLen(NULL, iLength);
+	MultiByteToWideChar(CP_ACP, 0, strInput, strlen(strInput), strWCHAR, iLength);
+
+	strOutput.Format(_T("%s"), strWCHAR);
+
+	return strOutput;
+}
+
+char* CChatServerDlg::CS2CHAR(CString strInput)
+
+{
+
+	// ## CString -> wchar_t -> char* ##
+	wchar_t* strWCHAR;
+	char* strOutput;
+	int iLength;
+
+	strWCHAR = strInput.GetBuffer(strInput.GetLength());
+
+	iLength = WideCharToMultiByte(CP_ACP, 0, strWCHAR, -1, NULL, 0, NULL, NULL);
+
+	strOutput = new char[iLength];
+
+	WideCharToMultiByte(CP_ACP, 0, strWCHAR, -1, strOutput, iLength, 0, 0);
+
+	return strOutput;
+
+}
+
 
 
 void CChatServerDlg::OnClickedButtonSend()
