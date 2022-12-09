@@ -231,18 +231,27 @@ LRESULT CChatServerDlg::OnReceive(WPARAM wParam, LPARAM lParam) {
 		showChat(strTmp, wParam, lParam, check, body_size, pTmp);
 		break;
 	}
-	case(91)://준비 87시작 88 89 턴
+	case(91)://준비 87시작 88선턴 89 후턴
 	{ 
 		isready += 1;
 		if (isready == 2) {
 			
 			
 			unsigned char stch = 87; //게임시작(87,88,89)
-			CString ststr = _T("게임을 시작합니다. ");
-			int st_size = (sizeof(char) * ststr.GetLength() * 2) + 1;
-			char* ctemp = CS2CHAR(ststr);
-			showChat(ststr, wParam, lParam, stch, st_size, ctemp);
-			delete ctemp;
+			CString str = _T("게임을 시작합니다. 당신의 턴입니다.");
+			CString str2 = _T("게임을 시작합니다. 상대의 턴입니다.");
+			unsigned int strlen = str.GetLength();
+			unsigned int strlen2 = str2.GetLength();
+
+			int len_s = (sizeof(char) * strlen * 2) + 1;
+			int len_s2 = (sizeof(char) * strlen2 * 2) + 1;
+			char* stsTemp = new char[strlen];
+			char* stsTemp2 = new char[strlen2];
+			stsTemp = CS2CHAR(str);
+			stsTemp2 = CS2CHAR(str2);
+			m_list.AddString(_T("게임시작"));
+
+			
 
 			std::random_device rd;
 			std::mt19937 gen(rd());
@@ -250,42 +259,36 @@ LRESULT CChatServerDlg::OnReceive(WPARAM wParam, LPARAM lParam) {
 			int j = dis(gen);
 			
 			if (j == 1) {
-				ststr = _T("1번 플레이어가 먼저 시작합니다.");
-				st_size = (sizeof(char) * ststr.GetLength() * 2) + 1;
-				ctemp = CS2CHAR(ststr);
-				
-				char* stbuff = new char[st_size + 2];
-				*stbuff = 88;
-				*(stbuff + 1) = body_size;
-				memcpy(stbuff + 2, ctemp, st_size + 2);
-				m_socCom[1]->Send(stbuff, st_size + 2);
-				delete stbuff;
+				char* buff = new char[len_s + 2];
+				*buff = 88;
+				*(buff + 1) = len_s;
+				memcpy(buff + 2, stsTemp, len_s);
+				m_socCom[1]->Send(buff, len_s + 2);
+				delete[] buff;
+				buff = NULL;
 
-				*stbuff = 89;
-				*(stbuff + 1) = body_size;
-				memcpy(stbuff + 2, ctemp, st_size + 2);
-				m_socCom[2]->Send(stbuff, st_size + 2);
-				delete stbuff;
-				stbuff = NULL;
+				char* buff2 = new char[len_s + 2];
+				*buff2 = 89;
+				*(buff2 + 1) = len_s2;
+				memcpy(buff2 + 2, stsTemp2, len_s2);
+				m_socCom[2]->Send(buff2, len_s2 + 2);
+				delete[] buff2;
 			}
 			else if (j == 2) {
-				ststr = _T("2번 플레이어가 먼저 시작합니다.");
-				st_size = (sizeof(char) * ststr.GetLength() * 2) + 1;
-				ctemp = CS2CHAR(ststr);
-				
-				char* stbuff = new char[st_size + 2];
-				*stbuff = 88;
-				*(stbuff + 1) = body_size;
-				memcpy(stbuff + 2, ctemp, st_size + 2);
-				m_socCom[2]->Send(stbuff, st_size + 2);
-				delete stbuff;
+				char* buff = new char[len_s + 2];
+				*buff = 88;
+				*(buff + 1) = len_s;
+				memcpy(buff + 2, stsTemp, len_s);
+				m_socCom[2]->Send(buff, len_s + 2);
+				delete[] buff;
+				buff = NULL;
 
-				*stbuff = 89;
-				*(stbuff + 1) = body_size;
-				memcpy(stbuff + 2, ctemp, st_size + 2);
-				m_socCom[1]->Send(stbuff, st_size + 2);
-				delete stbuff;
-				stbuff = NULL;
+				char* buff2 = new char[len_s + 2];
+				*buff2 = 89;
+				*(buff2 + 1) = len_s2;
+				memcpy(buff2 + 2, stsTemp2, len_s2);
+				m_socCom[1]->Send(buff2, len_s2 + 2);
+				delete[] buff2;
 			}
 
 			
@@ -314,17 +317,29 @@ LRESULT CChatServerDlg::OnReceive(WPARAM wParam, LPARAM lParam) {
 
 	case(11): //말 움직이기
 	{
-
+		break;
 	}
+
+
 	case(99): //승리
 	{
-		unsigned char stch = 99; //게임시작(87,88,89)
+		unsigned char stch = 99; 
 		CString ststr = (wParam + _T("번 플레이어가 승리하였습니다. 당신의 패배입니다."));
 		int st_size = (sizeof(char) * ststr.GetLength() * 2) + 1;
 		char* ctemp = CS2CHAR(ststr);
 		
 		showChat(ststr, wParam, lParam, stch, st_size, ctemp);
 		delete ctemp;
+		break;
+	}
+	case(6):
+	case(5):
+	case(4):
+	case(3):
+	case(2):
+	case(1):
+	{
+		CString ststr = (wParam + _T("번 플레이어 - ")+ strTmp);
 		break;
 	}
 
